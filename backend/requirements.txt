@@ -1,0 +1,12 @@
+fastapi[standard]
+uvicorn[standard]
+alembic
+
+pydantic
+pydantic-settings
+python-dotenv
+
+sqlalchemy[asyncio]
+asyncpg
+
+google-adk
