@@ -1,11 +1,13 @@
-import './App.css'
+import { RouterProvider } from "react-router-dom"
+import router from "./routes/router"
+
 
 function App() {
 
   return (
-    <div className="bg-blue-500 text-red-500 p-4 rounded-lg">
-      <h1 className="text-2xl font-bold">Hello Tailwind!</h1>
-    </div>
+    <>
+    <RouterProvider router={router} />
+    </>
   )
 }
 
