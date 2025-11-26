@@ -2,7 +2,7 @@
 export { default as AppCreator } from './AppCreator'
 export { default as ChatInterface } from './ChatInterface'
 export { default as SandboxPreview } from './SandboxPreview'
-export { default as ProjectList } from './ProjectList'
+export { default as ProjectList } from './ChatHistory'
 export { default as LandingScreen } from './LandingScreen'
 
 // UI Components

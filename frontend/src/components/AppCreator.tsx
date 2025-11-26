@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "./ui/button"
 import ChatInterface from "./ChatInterface"
 import SandboxPreview from "./SandboxPreview"
-import ProjectList from "./ProjectList"
+import ChatHistoryList from "./ChatHistory"
 import { Plus, Menu, X, Sparkles } from "lucide-react"
 
 export default function AppCreator() {
@@ -61,7 +61,7 @@ export default function AppCreator() {
           } transition-all duration-300 border-r border-border/50 bg-card/20 overflow-hidden`}
         >
           <div className="h-full p-4">
-            <ProjectList />
+            <ChatHistoryList />
           </div>
         </aside>
 
