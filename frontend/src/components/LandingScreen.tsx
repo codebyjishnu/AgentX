@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
-import { Sparkles, Clock, Folder } from "lucide-react"
+import { Sparkles, Send, Clock, Folder } from "lucide-react"
 
 interface Project {
   id: string
@@ -76,25 +77,26 @@ export default function LandingScreen({ onSendMessage, onSelectProject }: Landin
 
         {/* Message Input Section */}
         <div className="w-full mx-auto">
-              <div className="flex gap-3">
-                <Textarea
-                  placeholder="Describe the app you want to build..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="min-h-[150px] resize-none bg-background/50 border-border/50 focus:border-primary"
-                />
-                {/* <Button
-                  onClick={handleSend}
-                  disabled={!message.trim()}
-                  className="h-auto px-4 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
-                >
-                  <Send className="w-5 h-5" />
-                </Button> */}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Press Enter to send, Shift+Enter for new line
-              </p>
+          <div className="relative">
+            <Textarea
+              placeholder="Describe the app you want to build..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="min-h-[150px] resize-none bg-background/50 border-border/50 focus:border-primary pr-14 pb-12"
+            />
+            <Button
+              onClick={handleSend}
+              disabled={!message.trim()}
+              size="icon"
+              className="absolute bottom-3 right-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+            >
+              <Send className="w-4 h-4 text-white" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Press Enter to send, Shift+Enter for new line
+          </p>
         </div>
 
         {/* Projects History Section */}
