@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
-import { Send, Sparkles, User, Bot } from "lucide-react"
+import { Send,User, Bot, Wand } from "lucide-react"
 
 interface Message {
   id: string
@@ -125,7 +125,7 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
           </Button>
         </div>
         <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <Sparkles className="w-3 h-3" />
+          <Wand className="w-3 h-3" />
           <span>Press Enter to send, Shift+Enter for new line</span>
         </div>
       </div>

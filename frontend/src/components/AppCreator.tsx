@@ -3,7 +3,7 @@ import { Button } from "./ui/button"
 import ChatInterface from "./ChatInterface"
 import SandboxPreview from "./SandboxPreview"
 import ChatHistoryList from "./ChatHistory"
-import { Plus, Menu, X, Sparkles } from "lucide-react"
+import { Plus, Menu, X, Wand } from "lucide-react"
 
 export default function AppCreator() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
@@ -37,10 +37,10 @@ export default function AppCreator() {
               {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg bg-primary from-primary to-purple-600 flex items-center justify-center">
+                <Wand className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold bg-white from-primary to-purple-600 bg-clip-text text-transparent">
                 AgentX
               </h1>
             </div>

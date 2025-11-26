@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
-import { Sparkles, Send, Clock, Folder } from "lucide-react"
+import { Send, Wand} from "lucide-react"
+import { PROJECT_TEMPLATES } from "../lib/constant"
 
 interface Project {
   id: string
@@ -12,37 +12,12 @@ interface Project {
   lastModified: string
 }
 
-// Mock projects data
-const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "E-commerce Dashboard",
-    description: "A full-stack e-commerce admin dashboard with analytics",
-    createdAt: "2024-01-15",
-    lastModified: "2 days ago"
-  },
-  {
-    id: "2",
-    name: "Task Management App",
-    description: "Kanban-style task management application",
-    createdAt: "2024-01-10",
-    lastModified: "1 week ago"
-  },
-  {
-    id: "3",
-    name: "Blog Platform",
-    description: "A modern blog platform with markdown support",
-    createdAt: "2024-01-05",
-    lastModified: "2 weeks ago"
-  }
-]
-
 interface LandingScreenProps {
   onSendMessage?: (message: string) => void
   onSelectProject?: (project: Project) => void
 }
 
-export default function LandingScreen({ onSendMessage, onSelectProject }: LandingScreenProps) {
+export default function LandingScreen({ onSendMessage }: LandingScreenProps) {
   const [message, setMessage] = useState("")
 
   const handleSend = () => {
@@ -60,12 +35,12 @@ export default function LandingScreen({ onSendMessage, onSelectProject }: Landin
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="h-full w-full overflow-y-auto bg-black- from-background via-background to-primary/5">
       <div className="max-w-4xl w-full mx-auto p-8 space-y-12">
         {/* Hero Section */}
         <div className="text-center space-y-4 pt-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 mb-4">
-            <Sparkles className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary from-primary to-purple-600 mb-4">
+            <Wand className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text">
             Welcome to AgentX
@@ -83,13 +58,13 @@ export default function LandingScreen({ onSendMessage, onSelectProject }: Landin
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="min-h-[150px] resize-none bg-background/50 border-border/50 focus:border-primary pr-14 pb-12"
+              className="min-h-[150px] resize-none bg-background/50 border-border/50 focus:border-primary pr-14 pb-12 text-md"
             />
             <Button
               onClick={handleSend}
               disabled={!message.trim()}
               size="icon"
-              className="absolute bottom-3 right-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+              className="absolute bottom-3 right-3 bg-primary from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
             >
               <Send className="w-4 h-4 text-white" />
             </Button>
@@ -100,50 +75,21 @@ export default function LandingScreen({ onSendMessage, onSelectProject }: Landin
         </div>
 
         {/* Projects History Section */}
-        <div className="w-full">
-          <div className="flex items-center gap-2 mb-4">
-            <Folder className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold">Previous Projects</h2>
-          </div>
-
-          {mockProjects.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockProjects.map((project) => (
-                <Card
-                  key={project.id}
-                  onClick={() => onSelectProject?.(project)}
-                  className="bg-card/50 border-border/50 hover:bg-card/70 hover:border-primary/50 transition-all cursor-pointer group"
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base group-hover:text-primary transition-colors">
-                      {project.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                      {project.description}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="w-3 h-3" />
-                      <span>{project.lastModified}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="bg-card/30 border-border/30 border-dashed">
-              <CardContent className="p-8 text-center">
-                <Folder className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-                <p className="text-muted-foreground">
-                  No projects yet. Start by describing an app above!
-                </p>
-              </CardContent>
-            </Card>
-          )}
+        <div className="flex-wrap justify-center gap-3 hidden md:flex max-w-3xl">
+          {PROJECT_TEMPLATES.map((template) => (
+            <Button 
+              key={template.title}
+              variant="outline"
+              size="lg"
+              className="bg-white dark:bg-sidebar text-black"
+              onClick={() => setMessage(template.prompt)}
+            >
+              {template.emoji} {template.title}
+            </Button>
+          ))}
+        </div>
         </div>
       </div>
-    </div>
   )
 }
 
