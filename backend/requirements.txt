@@ -2,6 +2,9 @@ fastapi[standard]
 uvicorn[standard]
 alembic
 
+psycopg2-binary 
+psycopg
+
 pydantic
 pydantic-settings
 python-dotenv
@@ -10,3 +13,6 @@ sqlalchemy[asyncio]
 asyncpg
 
 google-adk
+
+e2b
+e2b-code-interpreter

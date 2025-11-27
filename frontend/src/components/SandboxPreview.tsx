@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
-import { Monitor, RefreshCw, Maximize2, Code, Eye } from "lucide-react"
+import { Monitor, RefreshCw, Code, Eye } from "lucide-react"
 import { useState } from "react"
 
 interface SandboxPreviewProps {
@@ -41,9 +41,6 @@ export default function SandboxPreview({ isLoading = false }: SandboxPreviewProp
             </div>
             <Button size="sm" variant="outline" className="h-8">
               <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="outline" className="h-8">
-              <Maximize2 className="w-4 h-4" />
             </Button>
           </div>
         </div>

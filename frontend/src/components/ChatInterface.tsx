@@ -1,8 +1,11 @@
 import { useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
-import { Send,User, Bot, Wand } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Send, User, Bot, Wand, FolderOpen, Plus } from "lucide-react"
+import type { Project } from "../types"
 
 interface Message {
   id: string
@@ -15,10 +18,25 @@ interface ChatInterfaceProps {
   onSendMessage?: (message: string) => void
 }
 
+// Mock projects for now - this would come from API/context in real app
+const mockProjects: Project[] = [
+  { id: "1", name: "Netflix Clone", createdAt: "2024-01-15", lastModified: "2024-01-20", status: "active" },
+  { id: "2", name: "Admin Dashboard", createdAt: "2024-01-10", lastModified: "2024-01-18", status: "active" },
+  { id: "3", name: "E-commerce App", createdAt: "2024-01-05", lastModified: "2024-01-15", status: "draft" },
+]
+
 export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
+  const navigate = useNavigate()
+  const { id: currentProjectId } = useParams()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+
+  const handleProjectChange = (projectId: string) => {
+    navigate(`/project/${projectId}`)
+  }
+
+  const currentProject = mockProjects.find(p => p.id === currentProjectId)
 
   const handleSend = () => {
     if (!input.trim()) return
@@ -57,6 +75,44 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Project Selector Header */}
+      <div className="border-b border-border/50 p-3 bg-card/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={currentProject?.name || ""}
+              onValueChange={handleProjectChange}
+            >
+              <SelectTrigger className="w-[200px] h-8 text-sm">
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {currentProject && (
+              <span className="text-xs text-muted-foreground ml-2">
+                Last modified: {new Date(currentProject.lastModified).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/")}
+            className="gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </Button>
+        </div>
+      </div>
+
       {/* Chat History */}
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-4 py-4">
