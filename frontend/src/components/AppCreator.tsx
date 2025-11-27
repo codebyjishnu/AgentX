@@ -1,0 +1,101 @@
+import { useState } from "react"
+import { Button } from "./ui/button"
+import ChatInterface from "./ChatInterface"
+import SandboxPreview from "./SandboxPreview"
+import ChatHistoryList from "./ChatHistory"
+import { Plus, Menu, X, Wand } from "lucide-react"
+
+export default function AppCreator() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+
+  const handleCreateNewApp = () => {
+    setIsCreating(true)
+    // Simulate sandbox initialization
+    setTimeout(() => {
+      setIsCreating(false)
+    }, 2000)
+  }
+
+  const handleSendMessage = (message: string) => {
+    console.log("Message sent:", message)
+    // This will be connected to the backend API later
+  }
+
+  return (
+    <div className="h-screen w-full flex flex-col bg-background">
+      {/* Header */}
+      <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden"
+            >
+              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary from-primary to-purple-600 flex items-center justify-center">
+                <Wand className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold bg-white from-primary to-purple-600 bg-clip-text text-transparent">
+                AgentX
+              </h1>
+            </div>
+          </div>
+          <Button onClick={handleCreateNewApp} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Create New App
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - Project List */}
+        <aside
+          className={`${
+            isSidebarOpen ? 'w-80' : 'w-0'
+          } transition-all duration-300 border-r border-border/50 bg-card/20 overflow-hidden`}
+        >
+          <div className="h-full p-4">
+            <ChatHistoryList />
+          </div>
+        </aside>
+
+        {/* Main Content Area - Split View */}
+        <main className="flex-1 flex overflow-hidden">
+          {/* Left Half - Chat Interface */}
+          <div className="w-1/2 border-r border-border/50 bg-background">
+            <ChatInterface onSendMessage={handleSendMessage} />
+          </div>
+
+          {/* Right Half - Sandbox Preview */}
+          <div className="w-1/2 bg-background p-4">
+            <SandboxPreview isLoading={isCreating} />
+          </div>
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 bg-card/30 backdrop-blur-sm">
+        <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <span>© 2024 AgentX</span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              All systems operational
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span>Powered by E2B Sandbox</span>
+            <span>v1.0.0</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
