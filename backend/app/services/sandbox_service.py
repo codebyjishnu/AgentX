@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-from typing import Dict, Optional, Union
+from typing import Any, Optional, Union
 from e2b import AsyncSandbox
-
-@dataclass
-class SandboxFile:
-    path: str
-    content: str
+from pydantic import BaseModel, Field
+class SandboxFile(BaseModel):
+    path: str = Field(..., description="The file path in the sandbox.")
+    content: str = Field(..., description="The content of the file.")
 
 class SandboxService:
 
@@ -47,13 +45,15 @@ class SandboxService:
         except Exception as e:
             return f"Command execution failed: {str(e)}\nStdout: {buffer['stdout']}\nStderr: {buffer['stderr']}"
         
-    async def create_or_update_files(self, files: list[SandboxFile]) -> Union[Dict[str, SandboxFile], str]:
+    async def create_or_update_files(self, files: list[Any]) -> Union[list[SandboxFile], str]:
         try:
-            new_files: Dict[str, SandboxFile] = {}
+            new_files: list[SandboxFile] = []
             sandbox = self._get_sandbox()
             for file in files:
+                if isinstance(file, dict):
+                    file = SandboxFile(**file)
                 await sandbox.files.write(file.path, file.content)
-                new_files[file.path] = file
+                new_files.append(file)
             return new_files
         except Exception as e:
             return "File write failed: " + str(e)
