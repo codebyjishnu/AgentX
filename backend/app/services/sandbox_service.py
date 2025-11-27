@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Union
 from e2b import AsyncSandbox
+from pydantic import BaseModel, Field
 
-@dataclass
-class SandboxFile:
-    path: str
-    content: str
+class SandboxFile(BaseModel):
+    path: str = Field(..., description="Path to the file")
+    content: str = Field(..., description="Content of the file")
 
 class SandboxService:
 
@@ -33,6 +33,7 @@ class SandboxService:
             return str(e)
     
     async def run_command(self, command: str) -> str:
+        """Terminal command execution."""
         try:
             buffer = {
                 "stdout": "",
@@ -47,24 +48,24 @@ class SandboxService:
         except Exception as e:
             return f"Command execution failed: {str(e)}\nStdout: {buffer['stdout']}\nStderr: {buffer['stderr']}"
         
-    async def create_or_update_files(self, files: list[SandboxFile]) -> Union[Dict[str, SandboxFile], str]:
+    async def create_or_update_files(self, files: list[Dict]) -> Union[Dict[str, SandboxFile], str]:
         try:
             new_files: Dict[str, SandboxFile] = {}
             sandbox = self._get_sandbox()
             for file in files:
-                await sandbox.files.write(file.path, file.content)
-                new_files[file.path] = file
+                await sandbox.files.write(file["path"], file["content"])
+                new_files[file["path"]] = file["content"]
             return new_files
         except Exception as e:
             return "File write failed: " + str(e)
         
-    async def read_files(self, paths: list[str]) -> Union[list[SandboxFile], str]:
+    async def read_files(self, paths: list[str]) -> Union[list[Dict], str]:
         try:
             contents = []
             sandbox = self._get_sandbox()
             for path in paths:
                 content = await sandbox.files.read(path)
-                contents.append(SandboxFile(path=path, content=content))
+                contents.append(SandboxFile(path=path, content=content).model_dump())
             return contents
         except Exception as e:
             return "File read failed: " + str(e)
