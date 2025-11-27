@@ -1,12 +1,17 @@
 import { useState } from "react"
-import { Button } from "./ui/button"
+// import { Button } from "./ui/button"
 import ChatInterface from "./ChatInterface"
 import SandboxPreview from "./SandboxPreview"
-import ChatHistoryList from "./ChatHistory"
-import { Plus, Menu, X, Wand } from "lucide-react"
+// import ChatHistoryList from "./ChatHistory"
+// import { Plus, Menu, X, Wand } from "lucide-react"
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "./ui/resizable"
 
 export default function AppCreator() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  // const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
 
   const handleCreateNewApp = () => {
@@ -25,7 +30,7 @@ export default function AppCreator() {
   return (
     <div className="h-screen w-full flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm">
+      {/* <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Button
@@ -50,12 +55,12 @@ export default function AppCreator() {
             Create New App
           </Button>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar - Project List */}
-        <aside
+        {/* <aside
           className={`${
             isSidebarOpen ? 'w-80' : 'w-0'
           } transition-all duration-300 border-r border-border/50 bg-card/20 overflow-hidden`}
@@ -63,19 +68,27 @@ export default function AppCreator() {
           <div className="h-full p-4">
             <ChatHistoryList />
           </div>
-        </aside>
+        </aside> */}
 
-        {/* Main Content Area - Split View */}
-        <main className="flex-1 flex overflow-hidden">
-          {/* Left Half - Chat Interface */}
-          <div className="w-1/2 border-r border-border/50 bg-background">
-            <ChatInterface onSendMessage={handleSendMessage} />
-          </div>
+        {/* Main Content Area - Resizable Split View */}
+        <main className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Left Panel - Chat Interface */}
+            <ResizablePanel defaultSize={50} minSize={20}>
+              <div className="h-full bg-background">
+                <ChatInterface onSendMessage={handleSendMessage} />
+              </div>
+            </ResizablePanel>
 
-          {/* Right Half - Sandbox Preview */}
-          <div className="w-1/2 bg-background p-4">
-            <SandboxPreview isLoading={isCreating} />
-          </div>
+            <ResizableHandle/>
+
+            {/* Right Panel - Sandbox Preview */}
+            <ResizablePanel defaultSize={50} minSize={40}>
+              <div className="h-full bg-background p-4">
+                <SandboxPreview isLoading={isCreating} />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </main>
       </div>
 
