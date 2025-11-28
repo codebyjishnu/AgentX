@@ -1,11 +1,12 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect, useRef } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Send, User, Bot, Wand, FolderOpen, Plus } from "lucide-react"
 import type { Project } from "../types"
+import { useSendMessage } from "../hooks/queries/useProjectQuery"
 
 interface Message {
   id: string
@@ -21,9 +22,62 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({ onSendMessage,projectDetails}:    ChatInterfaceProps) {
   const navigate = useNavigate()
-  const [messages, setMessages] = useState<Message[]>([])
+  const location = useLocation()
+  const initialMessageProcessed = useRef(false)
+
+  // Hook to send message via API
+  const { mutate: sendMessageMutation, isPending: isSending } = useSendMessage(projectDetails?.id)
+
+  // Get initial message from navigation state
+  const getInitialMessages = (): Message[] => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage) {
+      return [{
+        id: Date.now().toString(),
+        role: "user",
+        content: state.initialMessage,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      }]
+    }
+    return []
+  }
+
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages)
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+
+  // Handle initial message - send to API
+  useEffect(() => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage && !initialMessageProcessed.current) {
+      initialMessageProcessed.current = true
+
+      // Send initial message via API
+      sendMessageMutation(state.initialMessage, {
+        onSuccess: (response) => {
+          // Add AI response to messages if available
+          if (response?.message) {
+            const aiMessage: Message = {
+              id: Date.now().toString(),
+              role: "assistant",
+              content: response.message,
+              timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            }
+            setMessages(prev => [...prev, aiMessage])
+          }
+          setIsTyping(false)
+        },
+        onError: (error) => {
+          console.error("Failed to send initial message:", error)
+          setIsTyping(false)
+        }
+      })
+      onSendMessage?.(state.initialMessage)
+
+      // Clear the state to prevent re-triggering on navigation
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, onSendMessage, sendMessageMutation])
 
   const handleProjectChange = (projectId: string) => {
     navigate(`/project/${projectId}`)
@@ -36,7 +90,7 @@ const mockProjects: Project[] = [
 ]
 
   const handleSend = () => {
-    if (!input.trim()) return
+    if (!input.trim() || isSending) return
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -46,21 +100,32 @@ const mockProjects: Project[] = [
     }
 
     setMessages([...messages, newMessage])
+    const messageContent = input
     setInput("")
-    onSendMessage?.(input)
 
-    // Simulate AI response
+    // Send message via API
     setIsTyping(true)
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I understand! I'll start working on that right away. This will be implemented in the sandbox environment.",
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    sendMessageMutation(messageContent, {
+      onSuccess: (response) => {
+        // Add AI response to messages if available
+        if (response?.message) {
+          const aiMessage: Message = {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: response.message,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          }
+          setMessages(prev => [...prev, aiMessage])
+        }
+        setIsTyping(false)
+      },
+      onError: (error) => {
+        console.error("Failed to send message:", error)
+        setIsTyping(false)
       }
-      setMessages(prev => [...prev, aiResponse])
-      setIsTyping(false)
-    }, 1500)
+    })
+
+    onSendMessage?.(messageContent)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -171,7 +236,7 @@ const mockProjects: Project[] = [
           />
           <Button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isSending}
             className="h-auto px-4"
           >
             <Send className="w-5 h-5" />

@@ -30,3 +30,17 @@ export async function getProjectDetails(projectId:string){
     return error; 
   }
 }
+
+export async function sendMessage(projectId:string,message:string){
+  try {
+    const response = await privateClient.post(`project/${projectId}/chat`,{message})
+       const {data,status}=response;
+    if (status) {
+      return data;
+    }else{
+      return [];
+    }
+  } catch (error) {
+    return error
+  }
+}

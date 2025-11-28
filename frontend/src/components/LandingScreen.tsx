@@ -21,10 +21,11 @@ export default function LandingScreen() {
 
   const handleSend = () => {
     if (message.trim()) {
+      const initialMessage = message.trim()
        // Call the mutation inside the handler
       createProject(undefined, {
         onSuccess: (data) => {
-          navigate(`/project/${data.id}`)
+          navigate(`/project/${data.id}`, { state: { initialMessage } })
           setMessage("")
         },
         onError: (error) => {
