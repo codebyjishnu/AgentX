@@ -11,16 +11,8 @@ import {
 } from "./ui/resizable"
 
 export default function AppCreator() {
-  // const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreateNewApp = () => {
-    setIsCreating(true)
-    // Simulate sandbox initialization
-    setTimeout(() => {
-      setIsCreating(false)
-    }, 2000)
-  }
 
   const handleSendMessage = (message: string) => {
     console.log("Message sent:", message)
