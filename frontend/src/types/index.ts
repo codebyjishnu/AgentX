@@ -11,8 +11,8 @@ export interface Project {
   id: string
   name: string
   description?: string
-  createdAt: string
-  lastModified: string
+  created_at: string
+  updated_at: string
   status?: 'active' | 'archived' | 'draft'
   sandboxUrl?: string
 }

@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createNewProject } from "../../services/projectService";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createNewProject, getProjectDetails } from "../../services/projectService";
 
 // Query keys for projects
 export const projectKeys = {
@@ -23,5 +23,16 @@ export const useCreateProject = () => {
       // Invalidate projects list to refetch
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
     },
+  });
+};
+
+/**
+ * Hook to fetch project details by ID
+ */
+export const useProjectDetails = (projectId: string | undefined) => {
+  return useQuery({
+    queryKey: projectKeys.detail(projectId ?? ""),
+    queryFn: () => getProjectDetails(projectId!),
+    enabled: !!projectId,
   });
 };

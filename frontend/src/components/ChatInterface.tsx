@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
@@ -15,19 +15,12 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onSendMessage?: (message: string) => void
+  onSendMessage?: (message: string) => void,
+  projectDetails?:Project
 }
 
-// Mock projects for now - this would come from API/context in real app
-const mockProjects: Project[] = [
-  { id: "1", name: "Netflix Clone", createdAt: "2024-01-15", lastModified: "2024-01-20", status: "active" },
-  { id: "2", name: "Admin Dashboard", createdAt: "2024-01-10", lastModified: "2024-01-18", status: "active" },
-  { id: "3", name: "E-commerce App", createdAt: "2024-01-05", lastModified: "2024-01-15", status: "draft" },
-]
-
-export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
+export default function ChatInterface({ onSendMessage,projectDetails}:    ChatInterfaceProps) {
   const navigate = useNavigate()
-  const { id: currentProjectId } = useParams()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -35,8 +28,12 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
   const handleProjectChange = (projectId: string) => {
     navigate(`/project/${projectId}`)
   }
-
-  const currentProject = mockProjects.find(p => p.id === currentProjectId)
+// Mock projects for now - this would come from API/context in real app
+const mockProjects: Project[] = [
+  { id: "1", name: "Netflix Clone", created_at: "2024-01-15", updated_at: "2024-01-20", status: "active" },
+  { id: "2", name: "Admin Dashboard", created_at: "2024-01-10", updated_at: "2024-01-18", status: "active" },
+  { id: "3", name: "E-commerce App", created_at: "2024-01-05", updated_at: "2024-01-15", status: "draft" },
+]
 
   const handleSend = () => {
     if (!input.trim()) return
@@ -81,7 +78,7 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
           <div className="flex items-center gap-2">
             <FolderOpen className="w-4 h-4 text-muted-foreground" />
             <Select
-              value={currentProject?.name || ""}
+              value={projectDetails?.name || ""}
               onValueChange={handleProjectChange}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
@@ -95,9 +92,9 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
                 ))}
               </SelectContent>
             </Select>
-            {currentProject && (
+            {projectDetails && (
               <span className="text-xs text-muted-foreground ml-2">
-                Last modified: {new Date(currentProject.lastModified).toLocaleDateString()}
+                Last modified: {new Date(projectDetails.updated_at).toLocaleDateString()}
               </span>
             )}
           </div>

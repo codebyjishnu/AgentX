@@ -7,7 +7,6 @@ export async function createNewProject(): Promise<any> {
   try {
     const response = await privateClient.get("/project/new");
     const { data, status } = response;
-
     if (status) {
       return data;
     } else {
