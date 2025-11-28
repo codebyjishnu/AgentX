@@ -9,18 +9,22 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "./ui/resizable"
+import { useParams } from "react-router-dom"
+import { useProjectDetails } from "../hooks/queries/useProjectQuery"
 
 export default function AppCreator() {
-  // const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const { id } = useParams()
+  const { data: projectDetails, isLoading, isError } = useProjectDetails(id)
   const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreateNewApp = () => {
-    setIsCreating(true)
-    // Simulate sandbox initialization
-    setTimeout(() => {
-      setIsCreating(false)
-    }, 2000)
+  if (isLoading) {
+    return <div>Loading...</div>
   }
+
+  if (isError) {
+    return <div>Error loading project</div>
+  }
+
 
   const handleSendMessage = (message: string) => {
     console.log("Message sent:", message)
@@ -76,7 +80,7 @@ export default function AppCreator() {
             {/* Left Panel - Chat Interface */}
             <ResizablePanel defaultSize={50} minSize={20}>
               <div className="h-full bg-background">
-                <ChatInterface onSendMessage={handleSendMessage} />
+                <ChatInterface onSendMessage={handleSendMessage} projectDetails={projectDetails}/>
               </div>
             </ResizablePanel>
 

@@ -1,11 +1,12 @@
-import { useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useState, useEffect, useRef } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Send, User, Bot, Wand, FolderOpen, Plus } from "lucide-react"
 import type { Project } from "../types"
+import { useSendMessage } from "../hooks/queries/useProjectQuery"
 
 interface Message {
   id: string
@@ -15,31 +16,81 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onSendMessage?: (message: string) => void
+  onSendMessage?: (message: string) => void,
+  projectDetails?:Project
 }
 
-// Mock projects for now - this would come from API/context in real app
-const mockProjects: Project[] = [
-  { id: "1", name: "Netflix Clone", createdAt: "2024-01-15", lastModified: "2024-01-20", status: "active" },
-  { id: "2", name: "Admin Dashboard", createdAt: "2024-01-10", lastModified: "2024-01-18", status: "active" },
-  { id: "3", name: "E-commerce App", createdAt: "2024-01-05", lastModified: "2024-01-15", status: "draft" },
-]
-
-export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
+export default function ChatInterface({ onSendMessage,projectDetails}:    ChatInterfaceProps) {
   const navigate = useNavigate()
-  const { id: currentProjectId } = useParams()
-  const [messages, setMessages] = useState<Message[]>([])
+  const location = useLocation()
+  const initialMessageProcessed = useRef(false)
+
+  // Hook to send message via API
+  const { mutate: sendMessageMutation, isPending: isSending } = useSendMessage(projectDetails?.id)
+
+  // Get initial message from navigation state
+  const getInitialMessages = (): Message[] => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage) {
+      return [{
+        id: Date.now().toString(),
+        role: "user",
+        content: state.initialMessage,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      }]
+    }
+    return []
+  }
+
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages)
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+
+  // Handle initial message - send to API
+  useEffect(() => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage && !initialMessageProcessed.current) {
+      initialMessageProcessed.current = true
+
+      // Send initial message via API
+      sendMessageMutation(state.initialMessage, {
+        onSuccess: (response) => {
+          // Add AI response to messages if available
+          if (response?.message) {
+            const aiMessage: Message = {
+              id: Date.now().toString(),
+              role: "assistant",
+              content: response.message,
+              timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            }
+            setMessages(prev => [...prev, aiMessage])
+          }
+          setIsTyping(false)
+        },
+        onError: (error) => {
+          console.error("Failed to send initial message:", error)
+          setIsTyping(false)
+        }
+      })
+      onSendMessage?.(state.initialMessage)
+
+      // Clear the state to prevent re-triggering on navigation
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, onSendMessage, sendMessageMutation])
 
   const handleProjectChange = (projectId: string) => {
     navigate(`/project/${projectId}`)
   }
-
-  const currentProject = mockProjects.find(p => p.id === currentProjectId)
+// Mock projects for now - this would come from API/context in real app
+const mockProjects: Project[] = [
+  { id: "1", name: "Netflix Clone", created_at: "2024-01-15", updated_at: "2024-01-20", status: "active" },
+  { id: "2", name: "Admin Dashboard", created_at: "2024-01-10", updated_at: "2024-01-18", status: "active" },
+  { id: "3", name: "E-commerce App", created_at: "2024-01-05", updated_at: "2024-01-15", status: "draft" },
+]
 
   const handleSend = () => {
-    if (!input.trim()) return
+    if (!input.trim() || isSending) return
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -49,21 +100,32 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
     }
 
     setMessages([...messages, newMessage])
+    const messageContent = input
     setInput("")
-    onSendMessage?.(input)
 
-    // Simulate AI response
+    // Send message via API
     setIsTyping(true)
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I understand! I'll start working on that right away. This will be implemented in the sandbox environment.",
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    sendMessageMutation(messageContent, {
+      onSuccess: (response) => {
+        // Add AI response to messages if available
+        if (response?.message) {
+          const aiMessage: Message = {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: response.message,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+          }
+          setMessages(prev => [...prev, aiMessage])
+        }
+        setIsTyping(false)
+      },
+      onError: (error) => {
+        console.error("Failed to send message:", error)
+        setIsTyping(false)
       }
-      setMessages(prev => [...prev, aiResponse])
-      setIsTyping(false)
-    }, 1500)
+    })
+
+    onSendMessage?.(messageContent)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -81,7 +143,7 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
           <div className="flex items-center gap-2">
             <FolderOpen className="w-4 h-4 text-muted-foreground" />
             <Select
-              value={currentProject?.name || ""}
+              value={projectDetails?.name || ""}
               onValueChange={handleProjectChange}
             >
               <SelectTrigger className="w-[200px] h-8 text-sm">
@@ -95,9 +157,9 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
                 ))}
               </SelectContent>
             </Select>
-            {currentProject && (
+            {projectDetails && (
               <span className="text-xs text-muted-foreground ml-2">
-                Last modified: {new Date(currentProject.lastModified).toLocaleDateString()}
+                Last modified: {new Date(projectDetails.updated_at).toLocaleDateString()}
               </span>
             )}
           </div>
@@ -174,7 +236,7 @@ export default function ChatInterface({ onSendMessage }: ChatInterfaceProps) {
           />
           <Button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isSending}
             className="h-auto px-4"
           >
             <Send className="w-5 h-5" />

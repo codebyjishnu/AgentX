@@ -14,6 +14,9 @@ class ProjectResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="Message to add to the project", examples=["Hello, how can I help you?"])
+
 # class MeassageResponse(BaseModel):
 #     """Response schema for an agent session."""
 #     id: uuid.UUID = Field(..., description="ID of the session", examples=[str(uuid.uuid4())])

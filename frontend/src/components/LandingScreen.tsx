@@ -3,26 +3,35 @@ import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { Send, Wand} from "lucide-react"
 import { PROJECT_TEMPLATES } from "../lib/constant"
+import { useCreateProject } from "../hooks/queries/useProjectQuery"
+import { useNavigate } from "react-router-dom"
 
-interface Project {
-  id: string
-  name: string
-  description: string
-  createdAt: string
-  lastModified: string
-}
+// interface Project {
+//   id: string
+//   name: string
+//   description: string
+//   createdAt: string
+//   lastModified: string
+// }
 
-interface LandingScreenProps {
-  onSendMessage?: (message: string) => void
-  onSelectProject?: (project: Project) => void
-}
-
-export default function LandingScreen({ onSendMessage }: LandingScreenProps) {
+export default function LandingScreen() {
   const [message, setMessage] = useState("")
+  const {mutate: createProject}=useCreateProject()
+  const navigate = useNavigate()
 
   const handleSend = () => {
     if (message.trim()) {
-      onSendMessage?.(message)
+      const initialMessage = message.trim()
+       // Call the mutation inside the handler
+      createProject(undefined, {
+        onSuccess: (data) => {
+          navigate(`/project/${data.id}`, { state: { initialMessage } })
+          setMessage("")
+        },
+        onError: (error) => {
+          console.error("Failed to create project:", error)
+        }
+      })
       setMessage("")
     }
   }

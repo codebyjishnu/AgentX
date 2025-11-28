@@ -46,6 +46,16 @@ class AgentService():
         }
         return details
     
+    async def _add_message(self, project_id: uuid.UUID, content: str, role: MessageRole, type: MessageType):
+        """Add a new message to a project."""
+        obj_data = {"content": content, "project_id": project_id, "role": role, "type": type}
+        db_obj = Message(**obj_data)
+        self.db.add(db_obj)
+        await self.db.flush()
+        await self.db.refresh(db_obj)
+        await self.db.commit()
+        return db_obj
+
     async def execute_chat(self, project_id: uuid.UUID, message: str):
         """Create a new message for a project."""
         # First check if project exists
@@ -56,13 +66,10 @@ class AgentService():
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         
+        # Add user message
+        user_message = await self._add_message(project_id, message, MessageRole.USER, MessageType.RESULT)
         # Create new message
-        obj_data = {"content": message, "project_id": project_id, "role": MessageRole.USER, "type": MessageType.RESULT}
-        db_obj = Message(**obj_data)
-        self.db.add(db_obj)
-        await self.db.flush()
-        await self.db.refresh(db_obj)
-        await self.db.commit()
+     
         result = None
         # TODO: start workflow excution and update message with result
         return result
