@@ -59,7 +59,7 @@ class SandboxService:
         except Exception as e:
             return "File write failed: " + str(e)
         
-    async def read_files(self, paths: list[str]) -> Union[list[Dict], str]:
+    async def read_files(self, paths: list[str]) -> Union[list[SandboxFile], str]:
         try:
             contents = []
             sandbox = self._get_sandbox()
