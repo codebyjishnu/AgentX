@@ -52,6 +52,8 @@ class SandboxService:
             for file in files:
                 if isinstance(file, dict):
                     file = SandboxFile(**file)
+                if file.path.startswith("/"):
+                    file.path = file.path[1:]
                 await sandbox.files.write(file.path, file.content)
                 new_files.append(file)
             return new_files
