@@ -17,6 +17,9 @@ RUN npx --yes create-next-app@16.0.4 . --yes --typescript --tailwind --eslint --
 RUN npx --yes shadcn@3.5.0 init --yes -b neutral --force
 RUN npx --yes shadcn@3.5.0 add --all --yes
 
+# Install tailwind animatecss plugin
+RUN npm install -D tailwindcss-animate tailwind-scrollbar-hide
+
 # Copy and setup compile script
 COPY compile_page.sh /compile_page.sh
 RUN chmod +x /compile_page.sh
