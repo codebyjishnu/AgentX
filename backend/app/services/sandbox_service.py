@@ -31,6 +31,7 @@ class SandboxService:
             return str(e)
     
     async def run_command(self, command: str) -> str:
+        """Terminal command execution."""
         try:
             buffer = {
                 "stdout": "",
@@ -66,7 +67,7 @@ class SandboxService:
             sandbox = self._get_sandbox()
             for path in paths:
                 content = await sandbox.files.read(path)
-                contents.append(SandboxFile(path=path, content=content))
+                contents.append(SandboxFile(path=path, content=content).model_dump())
             return contents
         except Exception as e:
             return "File read failed: " + str(e)

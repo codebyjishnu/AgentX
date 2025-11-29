@@ -13,6 +13,7 @@ sqlalchemy[asyncio]
 asyncpg
 
 google-adk
+litellm
 
 e2b
 e2b-code-interpreter
