@@ -84,6 +84,25 @@ export const projectsApi = {
   },
 }
 
+// Sandbox file types
+export interface SandboxFileEntry {
+  name: string
+  type: "file" | "dir"
+  path: string
+  size: number
+  mode: number
+  permissions: string
+  owner: string
+  group: string
+  modified_time: string
+  symlink_target: string | null
+}
+
+export interface SandboxFileContent {
+  path: string
+  content: string
+}
+
 // Sandbox API
 export const sandboxApi = {
   create: async (projectId: string): Promise<ApiResponse<{ url: string; sandboxId: string }>> => {
@@ -98,6 +117,14 @@ export const sandboxApi = {
       method: 'POST',
       body: JSON.stringify({ sandboxId }),
     })
+  },
+
+  listFiles: async (sandboxId: string): Promise<ApiResponse<SandboxFileEntry[]>> => {
+    return apiCall<SandboxFileEntry[]>(`${API_BASE_URL}/${sandboxId}/list_files`)
+  },
+
+  readFile: async (sandboxId: string, path: string): Promise<ApiResponse<SandboxFileContent>> => {
+    return apiCall<SandboxFileContent>(`${API_BASE_URL}/${sandboxId}/${path}`)
   },
 }
 
