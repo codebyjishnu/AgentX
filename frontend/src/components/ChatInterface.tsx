@@ -1,0 +1,340 @@
+import { useState, useEffect, useRef } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
+import { Button } from "./ui/button"
+import { Textarea } from "./ui/textarea"
+import { ScrollArea } from "./ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Send, User, Bot, Wand, FolderOpen, Plus, FileEdit, FileSearch, Terminal } from "lucide-react"
+import type { Project } from "../types"
+import { useSendMessage } from "../hooks/queries/useProjectQuery"
+
+type MessageType = 'text' | 'file_write' | 'file_read' | 'terminal' | 'error'
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  type?: MessageType
+  files?: string[]
+}
+
+interface ChatInterfaceProps {
+  onSendMessage?: (message: string) => void,
+  onSandboxReady?: (sandboxId: string) => void,
+  projectDetails?: Project
+}
+
+export default function ChatInterface({ onSendMessage, onSandboxReady, projectDetails }: ChatInterfaceProps) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const initialMessageProcessed = useRef(false)
+  const streamingMessageIdRef = useRef<string | null>(null)
+
+  // Hook to send message via SSE
+  const { sendMessage: sendMessageSSE, isPending: isSending } = useSendMessage(projectDetails?.id)
+
+  // Get initial message from navigation state
+  const getInitialMessages = (): Message[] => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage) {
+      return [{
+        id: Date.now().toString(),
+        role: "user",
+        content: state.initialMessage,
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+      }]
+    }
+    return []
+  }
+
+  const [messages, setMessages] = useState<Message[]>(getInitialMessages)
+  const [input, setInput] = useState("")
+
+  // Helper to send message and handle streaming response
+  const handleSendMessage = (content: string) => {
+    // Create AI message placeholder for streaming
+    const aiMessageId = Date.now().toString()
+    streamingMessageIdRef.current = aiMessageId
+
+    const aiMessage: Message = {
+      id: aiMessageId,
+      role: "assistant",
+      content: "Processing...",
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+    setMessages(prev => [...prev, aiMessage])
+
+    sendMessageSSE(content, {
+      onMessage: (message) => {
+        // Update message with text content
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: message, type: 'text' as MessageType }
+              : msg
+          )
+        )
+      },
+      onFileWrite: (data) => {
+        // Update message to show files being written
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message, type: 'file_write' as MessageType, files: data.files }
+              : msg
+          )
+        )
+      },
+      onFileRead: (data) => {
+        // Update message to show files being read
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message, type: 'file_read' as MessageType, files: data.files }
+              : msg
+          )
+        )
+      },
+      onTerminal: (data) => {
+        // Update message to show terminal activity
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message, type: 'terminal' as MessageType }
+              : msg
+          )
+        )
+      },
+      onComplete: (data) => {
+        const messageId = streamingMessageIdRef.current
+        // Show final message with summary when action is complete
+        if (messageId) {
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === messageId
+                ? { ...msg, content: data.summary || "Task completed successfully.", type: 'text' as MessageType, files: undefined }
+                : msg
+            )
+          )
+        }
+
+        // Notify parent about sandbox ID if available
+        if (data.sandbox_id) {
+          onSandboxReady?.(data.sandbox_id)
+        }
+
+        streamingMessageIdRef.current = null
+      },
+      onError: (error) => {
+        console.error("Failed to send message:", error)
+        // Update message to show error
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: error.message || "Sorry, an error occurred. Please try again.", type: 'error' as MessageType }
+              : msg
+          )
+        )
+        streamingMessageIdRef.current = null
+      }
+    })
+  }
+
+  // Handle initial message - send to API
+  useEffect(() => {
+    const state = location.state as { initialMessage?: string } | null
+    if (state?.initialMessage && !initialMessageProcessed.current) {
+      initialMessageProcessed.current = true
+
+       
+      handleSendMessage(state.initialMessage)
+      onSendMessage?.(state.initialMessage)
+
+      // Clear the state to prevent re-triggering on navigation
+      window.history.replaceState({}, document.title)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, onSendMessage])
+
+  const handleProjectChange = (projectId: string) => {
+    navigate(`/project/${projectId}`)
+  }
+// Mock projects for now - this would come from API/context in real app
+const mockProjects: Project[] = [
+  { id: "1", name: "Netflix Clone", created_at: "2024-01-15", updated_at: "2024-01-20", status: "active" },
+  { id: "2", name: "Admin Dashboard", created_at: "2024-01-10", updated_at: "2024-01-18", status: "active" },
+  { id: "3", name: "E-commerce App", created_at: "2024-01-05", updated_at: "2024-01-15", status: "draft" },
+]
+
+  const handleSend = () => {
+    if (!input.trim() || isSending) return
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    setMessages(prev => [...prev, newMessage])
+    const messageContent = input
+    setInput("")
+
+    handleSendMessage(messageContent)
+    onSendMessage?.(messageContent)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Project Selector Header */}
+      <div className="border-b border-border/50 p-3 bg-card/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={projectDetails?.name || ""}
+              onValueChange={handleProjectChange}
+            >
+              <SelectTrigger className="w-[200px] h-8 text-sm">
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {mockProjects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {projectDetails && (
+              <span className="text-xs text-muted-foreground ml-2">
+                Last modified: {new Date(projectDetails.updated_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/")}
+            className="gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </Button>
+        </div>
+      </div>
+
+      {/* Chat History */}
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-4 py-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-5 h-5 text-primary" />
+                </div>
+              )}
+              <div className={`flex flex-col gap-1 max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={`rounded-2xl px-4 py-2 ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : message.type === 'error'
+                        ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                        : 'bg-secondary text-secondary-foreground'
+                  }`}
+                >
+                  {/* Show icon based on message type */}
+                  {message.role === 'assistant' && message.type && message.type !== 'text' && (
+                    <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+                      {message.type === 'file_write' && (
+                        <>
+                          <FileEdit className="w-3 h-3" />
+                          <span>Writing files</span>
+                        </>
+                      )}
+                      {message.type === 'file_read' && (
+                        <>
+                          <FileSearch className="w-3 h-3" />
+                          <span>Reading files</span>
+                        </>
+                      )}
+                      {message.type === 'terminal' && (
+                        <>
+                          <Terminal className="w-3 h-3" />
+                          <span>Terminal</span>
+                        </>
+                      )}
+                      {message.type === 'error' && (
+                        <span className="text-destructive">Error</span>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {/* Show file list for file operations */}
+                  {message.files && message.files.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <div className="flex flex-wrap gap-1">
+                        {message.files.map((file, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-0.5 bg-background/50 rounded-md font-mono"
+                          >
+                            {file}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground px-2">{message.timestamp}</span>
+              </div>
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-foreground" />
+                </div>
+              )}
+            </div>
+          ))}
+
+        </div>
+      </ScrollArea>
+
+      {/* Input Area */}
+      <div className="border-t border-border/50 p-4 bg-card/30">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Describe the app you want to create..."
+            className="min-h-[60px] max-h-[120px] resize-none"
+          />
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || isSending}
+            className="h-auto px-4"
+          >
+            <Send className="w-5 h-5" />
+          </Button>
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <Wand className="w-3 h-3" />
+          <span>Press Enter to send, Shift+Enter for new line</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
