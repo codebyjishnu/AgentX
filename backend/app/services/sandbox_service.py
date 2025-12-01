@@ -17,7 +17,7 @@ class SandboxService:
             self.sandbox = await AsyncSandbox.connect(sandbox_id)
             return self.sandbox.sandbox_id
         else:
-            self.sandbox = await AsyncSandbox.create('agentX-test')
+            self.sandbox = await AsyncSandbox.create('agentX-test', timeout=30*60)
             return self.sandbox.sandbox_id
     
     def _get_sandbox(self):
