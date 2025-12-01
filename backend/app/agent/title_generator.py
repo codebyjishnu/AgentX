@@ -1,6 +1,3 @@
-
-
-
 from app.services.sandbox_service import SandboxService
 from google.adk.agents import Agent
 from google.adk.agents.readonly_context import ReadonlyContext
@@ -14,14 +11,12 @@ class TitleGenerator:
 
 
     async def _get_instruction(self, context: ReadonlyContext) -> str:
-        text = await instructions_utils.inject_session_state(TITLE_PROMPT, context)
-        print("Generated Title Instruction:", text)
-        return text
+        return await instructions_utils.inject_session_state(TITLE_PROMPT, context)
 
     def agent(self):
         return Agent(
-            name="code_assistant",
-            model="gemini-2.5-pro",
+            name="title_generator",
+            model="gemini-2.0-flash",
             description="A title generator for code fragments.",
             instruction=self._get_instruction,
             output_key="title",

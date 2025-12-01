@@ -116,7 +116,7 @@ class WorkflowService():
         
         yield self._create_event(ActionType.COMPLETE, "Task completed.", data= {
             "title": session.state.get("title", ""),
-            "summary": session.state.get("summary", ""),
+            "summary": session.state.get("summary", "").replace("<task_summary>", "").replace("</task_summary>", ""),
             "files": session.state.get("files", []),
             "sandbox_id": self.sandbox.sandbox.sandbox_id if self.sandbox.sandbox else "",
             "url": url,
