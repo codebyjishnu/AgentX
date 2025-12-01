@@ -1,8 +1,10 @@
+import uuid
 from fastapi import FastAPI
 from app.api.router import router
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.workflows.code_workflow import CodeWorkflow
+from app.services.workflow_service import WorkflowService
+
 
 app = FastAPI()
 
@@ -14,9 +16,11 @@ app.include_router(router)
 
 
 async def main():
-    obj = CodeWorkflow()
-    user_input = "Build a Netflix-style homepage with a hero banner (use a nice, dark-mode compatible gradient here), movie sections, responsive cards, and a modal for viewing details using mock data and local state. Use dark mode, use actual images for the placeholders."
-    await obj.execute_code_workflow("Test", user_input, None)
+    from dotenv import load_dotenv
+    load_dotenv()
+    obj = WorkflowService(db=None)
+    user_input = "Create a simple nextjs landing page"
+    await obj.execute_workflow(uuid.uuid4(), user_input)
 
 if __name__ == "__main__":
     import asyncio
