@@ -120,11 +120,11 @@ export const sandboxApi = {
   },
 
   listFiles: async (sandboxId: string): Promise<ApiResponse<SandboxFileEntry[]>> => {
-    return apiCall<SandboxFileEntry[]>(`${API_BASE_URL}/${sandboxId}/list_files`)
+    return apiCall<SandboxFileEntry[]>(`/sandbox/${sandboxId}/list_files`)
   },
 
   readFile: async (sandboxId: string, path: string): Promise<ApiResponse<SandboxFileContent>> => {
-    return apiCall<SandboxFileContent>(`${API_BASE_URL}/${sandboxId}/${path}`)
+    return apiCall<SandboxFileContent>(`/sandbox/${sandboxId}/${path}`)
   },
 }
 
