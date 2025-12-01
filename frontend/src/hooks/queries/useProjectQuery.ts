@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createNewProject, getProjectDetails, sendMessage } from "../../services/projectService";
+import { useCallback, useState } from "react";
+import { createNewProject, getProjectDetails, sendMessageSSE } from "../../services/projectService";
 
 // Query keys for projects
 export const projectKeys = {
@@ -38,24 +39,60 @@ export const useProjectDetails = (projectId: string | undefined) => {
   });
 };
 
+export interface SendMessageCallbacks {
+  onMessage?: (message: string) => void;
+  onFileCreation?: (data: { filename: string; path: string; language: string; message: string }) => void;
+  onFileUpdate?: (data: { filename: string; path: string; changes: number; message: string }) => void;
+  onComplete?: (data: { sandbox_id: string; summary: string }) => void;
+  onError?: (error: Error) => void;
+}
+
 /**
- * Hook to send a message in a project chat
+ * Hook to send a message via SSE (Server-Sent Events)
  */
 export const useSendMessage = (projectId: string | undefined) => {
-  const queryClient = useQueryClient();
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useMutation({
-    mutationFn: (message: string) => {
+  const sendMessage = useCallback(
+    async (message: string, callbacks?: SendMessageCallbacks) => {
       if (!projectId) {
-        throw new Error("Project ID is required");
+        const err = new Error("Project ID is required");
+        setError(err);
+        callbacks?.onError?.(err);
+        return;
       }
-      return sendMessage(projectId, message);
+
+      setIsPending(true);
+      setError(null);
+
+      await sendMessageSSE(projectId, message, {
+        onMessage: (msg) => {
+          callbacks?.onMessage?.(msg);
+        },
+        onFileCreation: (data) => {
+          callbacks?.onFileCreation?.(data);
+        },
+        onFileUpdate: (data) => {
+          callbacks?.onFileUpdate?.(data);
+        },
+        onComplete: (data) => {
+          setIsPending(false);
+          callbacks?.onComplete?.(data);
+        },
+        onError: (err) => {
+          setIsPending(false);
+          setError(err);
+          callbacks?.onError?.(err);
+        },
+      });
     },
-    onSuccess: () => {
-      // Optionally invalidate messages or project details
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: projectKeys.messages(projectId) });
-      }
-    },
-  });
+    [projectId]
+  );
+
+  return {
+    sendMessage,
+    isPending,
+    error,
+  };
 };
