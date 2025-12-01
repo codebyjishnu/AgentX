@@ -32,7 +32,7 @@ async def get_project_messages(
     service = AgentService(db)
     return await service.get_project_details(project_id)
 
-@router.post("/project/{project_id}/chat", response_model=ProjectResponse, response_model_exclude_none=True, response_model_exclude_unset=True)
+@router.post("/project/{project_id}/chat", response_model_exclude_none=True, response_model_exclude_unset=True)
 async def create_project_messages(
     project_id: uuid.UUID,
     message: ChatRequest,

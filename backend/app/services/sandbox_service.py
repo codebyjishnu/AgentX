@@ -13,11 +13,15 @@ class SandboxService:
         self.sandbox = None
 
     async def connect(self, sandbox_id: Optional[str] = None) -> str:
-        if sandbox_id:
-            self.sandbox = await AsyncSandbox.connect(sandbox_id)
-            return self.sandbox.sandbox_id
-        else:
-            self.sandbox = await AsyncSandbox.create('agentX-test', timeout=30*60)
+        try:
+            if sandbox_id:
+                self.sandbox = await AsyncSandbox.connect(sandbox_id)
+                return self.sandbox.sandbox_id
+            else:
+                self.sandbox = await AsyncSandbox.create('agentX-test')
+                return self.sandbox.sandbox_id
+        except Exception as e:
+            self.sandbox = await AsyncSandbox.create('agentX-test')
             return self.sandbox.sandbox_id
     
     def _get_sandbox(self):

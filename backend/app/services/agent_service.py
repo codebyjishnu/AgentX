@@ -2,6 +2,7 @@
 
 import uuid
 from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,4 +69,12 @@ class AgentService():
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         
-        return WorkflowService(self.db).execute_workflow(project_id, chat_request.message)
+        return StreamingResponse(
+            WorkflowService(self.db).execute_workflow(project_id, chat_request.message),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive"
+            }
+        )
