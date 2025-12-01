@@ -34,6 +34,7 @@ class Project(Base):
         index=True)
     
     name: Mapped[str] = mapped_column(String, nullable=False)
+    sandbox_id: Mapped[str] = mapped_column(String, nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
