@@ -4,15 +4,19 @@ import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { ScrollArea } from "./ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Send, User, Bot, Wand, FolderOpen, Plus } from "lucide-react"
+import { Send, User, Bot, Wand, FolderOpen, Plus, FileEdit, FileSearch, Terminal } from "lucide-react"
 import type { Project } from "../types"
 import { useSendMessage } from "../hooks/queries/useProjectQuery"
+
+type MessageType = 'text' | 'file_write' | 'file_read' | 'terminal' | 'error'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  type?: MessageType
+  files?: string[]
 }
 
 interface ChatInterfaceProps {
@@ -63,31 +67,41 @@ export default function ChatInterface({ onSendMessage, onSandboxReady, projectDe
 
     sendMessageSSE(content, {
       onMessage: (message) => {
-        // Update single message with current status while streaming
+        // Update message with text content
         setMessages(prev =>
           prev.map(msg =>
             msg.id === streamingMessageIdRef.current
-              ? { ...msg, content: message }
+              ? { ...msg, content: message, type: 'text' as MessageType }
               : msg
           )
         )
       },
-      onFileCreation: (data) => {
-        // Update single message with file creation status
+      onFileWrite: (data) => {
+        // Update message to show files being written
         setMessages(prev =>
           prev.map(msg =>
             msg.id === streamingMessageIdRef.current
-              ? { ...msg, content: data.message }
+              ? { ...msg, content: data.message, type: 'file_write' as MessageType, files: data.files }
               : msg
           )
         )
       },
-      onFileUpdate: (data) => {
-        // Update single message with file update status
+      onFileRead: (data) => {
+        // Update message to show files being read
         setMessages(prev =>
           prev.map(msg =>
             msg.id === streamingMessageIdRef.current
-              ? { ...msg, content: data.message }
+              ? { ...msg, content: data.message, type: 'file_read' as MessageType, files: data.files }
+              : msg
+          )
+        )
+      },
+      onTerminal: (data) => {
+        // Update message to show terminal activity
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message, type: 'terminal' as MessageType }
               : msg
           )
         )
@@ -99,7 +113,7 @@ export default function ChatInterface({ onSendMessage, onSandboxReady, projectDe
           setMessages(prev =>
             prev.map(msg =>
               msg.id === messageId
-                ? { ...msg, content: data.summary || "Task completed successfully." }
+                ? { ...msg, content: data.summary || "Task completed successfully.", type: 'text' as MessageType, files: undefined }
                 : msg
             )
           )
@@ -118,7 +132,7 @@ export default function ChatInterface({ onSendMessage, onSandboxReady, projectDe
         setMessages(prev =>
           prev.map(msg =>
             msg.id === streamingMessageIdRef.current
-              ? { ...msg, content: "Sorry, an error occurred. Please try again." }
+              ? { ...msg, content: error.message || "Sorry, an error occurred. Please try again.", type: 'error' as MessageType }
               : msg
           )
         )
@@ -236,10 +250,53 @@ const mockProjects: Project[] = [
                   className={`rounded-2xl px-4 py-2 ${
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground'
+                      : message.type === 'error'
+                        ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                        : 'bg-secondary text-secondary-foreground'
                   }`}
                 >
+                  {/* Show icon based on message type */}
+                  {message.role === 'assistant' && message.type && message.type !== 'text' && (
+                    <div className="flex items-center gap-2 mb-1 text-xs text-muted-foreground">
+                      {message.type === 'file_write' && (
+                        <>
+                          <FileEdit className="w-3 h-3" />
+                          <span>Writing files</span>
+                        </>
+                      )}
+                      {message.type === 'file_read' && (
+                        <>
+                          <FileSearch className="w-3 h-3" />
+                          <span>Reading files</span>
+                        </>
+                      )}
+                      {message.type === 'terminal' && (
+                        <>
+                          <Terminal className="w-3 h-3" />
+                          <span>Terminal</span>
+                        </>
+                      )}
+                      {message.type === 'error' && (
+                        <span className="text-destructive">Error</span>
+                      )}
+                    </div>
+                  )}
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {/* Show file list for file operations */}
+                  {message.files && message.files.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/50">
+                      <div className="flex flex-wrap gap-1">
+                        {message.files.map((file, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-0.5 bg-background/50 rounded-md font-mono"
+                          >
+                            {file}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <span className="text-xs text-muted-foreground px-2">{message.timestamp}</span>
               </div>

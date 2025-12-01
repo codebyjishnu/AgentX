@@ -32,23 +32,23 @@ export async function getProjectDetails(projectId:string){
 }
 
 export interface SSEEvent {
-  action: "message" | "file_creation" | "file_update" | "complete";
-  message: string | { sandbox_id: string; summary: string };
+  action: "message" | "file_write" | "file_read" | "terminal" | "complete" | "error";
+  message: string;
   timestamp: number;
   data?: {
-    filename?: string;
-    path?: string;
-    language?: string;
-    changes?: number;
-    sandbox_id?:string,
-    summary?:string
+    files?: string[];
+    command?: string;
+    output?: string;
+    sandbox_id?: string;
+    summary?: string;
   };
 }
 
 export interface SSECallbacks {
   onMessage?: (message: string) => void;
-  onFileCreation?: (data: { filename: string; path: string; language: string; message: string }) => void;
-  onFileUpdate?: (data: { filename: string; path: string; changes: number; message: string }) => void;
+  onFileWrite?: (data: { files: string[]; message: string }) => void;
+  onFileRead?: (data: { files: string[]; message: string }) => void;
+  onTerminal?: (data: { command?: string; output?: string; message: string }) => void;
   onComplete?: (data: { sandbox_id: string; summary: string }) => void;
   onError?: (error: Error) => void;
 }
@@ -102,40 +102,40 @@ export async function sendMessageSSE(
 
             switch (parsed.action) {
               case "message":
-                if (typeof parsed.message === "string") {
-                  callbacks.onMessage?.(parsed.message);
-                }
+                callbacks.onMessage?.(parsed.message);
                 break;
 
-              case "file_creation":
-                if (parsed.data && typeof parsed.message === "string") {
-                  callbacks.onFileCreation?.({
-                    filename: parsed.data.filename || "",
-                    path: parsed.data.path || "",
-                    language: parsed.data.language || "",
-                    message: parsed.message,
-                  });
-                }
+              case "file_write":
+                callbacks.onFileWrite?.({
+                  files: parsed.data?.files || [],
+                  message: parsed.message,
+                });
                 break;
 
-              case "file_update":
-                if (parsed.data && typeof parsed.message === "string") {
-                  callbacks.onFileUpdate?.({
-                    filename: parsed.data.filename || "",
-                    path: parsed.data.path || "",
-                    changes: parsed.data.changes || 0,
-                    message: parsed.message,
-                  });
-                }
+              case "file_read":
+                callbacks.onFileRead?.({
+                  files: parsed.data?.files || [],
+                  message: parsed.message,
+                });
+                break;
+
+              case "terminal":
+                callbacks.onTerminal?.({
+                  command: parsed.data?.command,
+                  output: parsed.data?.output,
+                  message: parsed.message,
+                });
                 break;
 
               case "complete":
-                if (typeof parsed.message === "object") {
-                  callbacks.onComplete?.(parsed.message);
-                } else {
-                  // Handle case where message might be a string summary
-                  callbacks.onComplete?.({ sandbox_id: parsed.data?.sandbox_id || "", summary: String(parsed.message) });
-                }
+                callbacks.onComplete?.({
+                  sandbox_id: parsed.data?.sandbox_id || "",
+                  summary: parsed.data?.summary || parsed.message,
+                });
+                return;
+
+              case "error":
+                callbacks.onError?.(new Error(parsed.message));
                 return;
             }
           } catch {

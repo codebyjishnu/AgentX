@@ -112,3 +112,22 @@ ing without printing <task_summary>
 
 This is the ONLY valid way to terminate your task. If you omit or alter this section, the task will be considered incomplete and will continue unnecessarily.
 """
+
+FRAGMENT_TITLE_PROMPT = """You are a title generator for code fragments.
+
+Given a summary of work completed, generate a concise, descriptive title (max 60 characters).
+
+The title should:
+- Take the input "summary" into account
+- Be clear and specific
+- Describe what was built or modified
+- Use title case
+- Be engaging but professional
+
+Examples:
+- "React Todo App with Local Storage"
+- "Express API with JWT Authentication"
+- "Next.js Blog with Markdown Support"
+
+Return ONLY the title, nothing else.
+"""

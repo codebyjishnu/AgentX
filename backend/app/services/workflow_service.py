@@ -1,4 +1,7 @@
-from typing import Optional
+from enum import Enum
+import json
+import time
+from typing import Any, Dict, Optional
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from google.adk.runners import Runner
@@ -12,6 +15,7 @@ from google.adk.sessions import Session
 from app.agent.code_agent import CodeAgent
 from app.services.sandbox_service import SandboxService
 from app.core.config import settings
+from app.agent.title_generator import TitleGenerator
 
 class WorkflowService():
 
@@ -23,19 +27,24 @@ class WorkflowService():
         )
         self.artifact_service = InMemoryArtifactService()
 
-    async def _init_sandbox(self) -> None:
-        await self.sandbox.connect()
+    async def _init_sandbox(self, session_id: Optional[str]):
+        return await self.sandbox.connect(session_id)
 
     async def _init_config(self, project_id: uuid.UUID):
-        return await self.memory_session.create_session(
-            app_name="AgentX",
-            user_id="user_123",
-            session_id=str(project_id),
-            state={
-                "summary": "",
-                "files": {},
-            },
-        )
+        session = await self._get_session(project_id)
+        if session:
+            return session
+        else:
+            return await self.memory_session.create_session(
+                app_name="AgentX",
+                user_id="user_123",
+                session_id=str(project_id),
+                state={
+                    "summary": "",
+                    "files": {},
+                    "session_id": None,
+                },
+            )
 
     async def _get_session(self, project_id: uuid.UUID) -> Optional[Session]:
         return await self.memory_session.get_session(
@@ -52,6 +61,7 @@ class WorkflowService():
                 description="A sequential agent to handle coding workflows.",
                 sub_agents=[
                     CodeAgent(sandbox=self.sandbox).agent(),
+                    TitleGenerator(sandbox=self.sandbox).agent(),
                 ]
             ),
             session_service=self.memory_session,
@@ -60,7 +70,8 @@ class WorkflowService():
     
     async def execute_workflow(self, project_id: uuid.UUID, message: str):
         session = await self._init_config(project_id)
-        await self._init_sandbox()
+        sandbox_id = await self._init_sandbox(session.state.get("sandbox_id", None))
+        session.state["sandbox_id"] = sandbox_id
         runner = await self._runner()
         content = types.Content(role='user', parts=[types.Part(text=message)])
 
@@ -69,17 +80,63 @@ class WorkflowService():
             session_id=str(project_id),
             new_message=content,
         ):
-            if event.is_final_response():
-                break
+            try:
+                # Extract tool name from function call or response
+                tool_name = "Unknown"
+                event_fun = event.get_function_calls()
+                if event_fun and len(event_fun) > 0:
+                    tool_name = event_fun[0].name
+                    args = event_fun[0].args or {}
+                    match tool_name:
+                        case "_create_or_update_files":
+                            files = args.get("files", [])
+                            file_paths = [file.get("path") for file in files]
+                            yield self._create_event(ActionType.FILE_WRITE, "Processing...", data={"files": file_paths})
+                        case "_read_files":
+                            yield self._create_event(ActionType.FILE_READ, "Processing...", data={"files": args.get("paths", [])})
+                        case "_run_terminal":
+                            yield self._create_event(ActionType.TERMINAL, "Processing...", data={"command": args.get("command", "")})
+                        case _:
+                            yield self._create_event(ActionType.MESSAGE, "Processing...")
+                if event.is_final_response():
+                    break
+            except Exception as e:
+                yield self._create_event(ActionType.ERROR, "Error: " + str(e))
 
         url = await self.sandbox.get_sandbox_url()
         session = await self._get_session(project_id)
         if not session:
             raise Exception("Session not found after workflow execution.")
         
-        return {
+        yield self._create_event(ActionType.COMPLETE, "Task completed.", data= {
+            "title": session.state.get("title", ""),
             "summary": session.state.get("summary", ""),
             "files": session.state.get("files", []),
             "sandbox_id": self.sandbox.sandbox.sandbox_id if self.sandbox.sandbox else "",
             "url": url,
+        })
+
+
+    def _create_event(
+        self,
+        action: ActionType,
+        message: str,
+        data: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Create a Server-Sent Event with structured action data."""
+        event_data = {
+            "action": action.value,
+            "message": message,
+            "timestamp": time.time(),
         }
+        if data:
+            event_data["data"] = data
+        return f"data: {json.dumps(event_data)}\n\n"
+    
+class ActionType(str, Enum):
+    MESSAGE = "message"
+    FILE_WRITE = "file_write"
+    FILE_READ= "file_read"
+    TERMINAL = "terminal"
+    COMPLETE = "complete"
+    ERROR = "error"
