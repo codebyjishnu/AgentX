@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Monitor, RefreshCw, Code, Eye } from "lucide-react"
 import { useState } from "react"
+import CodeBasePreview from "./codeBasePreview"
 
 interface SandboxPreviewProps {
   isLoading?: boolean
@@ -96,24 +97,7 @@ export default function SandboxPreview({ isLoading = false, sandbox_url }: Sandb
                 </div>
               </div>
             ) : (
-              <div className="h-full p-4 font-mono text-sm">
-                <div className="bg-background/50 rounded-lg p-4 h-full overflow-auto">
-                  <div className="text-muted-foreground">
-                    <div className="mb-2 text-primary">// App.tsx</div>
-                    <div className="space-y-1">
-                      <div><span className="text-purple-400">import</span> React <span className="text-purple-400">from</span> <span className="text-green-400">'react'</span></div>
-                      <div className="mt-4"><span className="text-purple-400">function</span> <span className="text-blue-400">App</span>() {'{'}</div>
-                      <div className="ml-4"><span className="text-purple-400">return</span> (</div>
-                      <div className="ml-8">{'<'}div className=<span className="text-green-400">"app"</span>{'>'}</div>
-                      <div className="ml-12">{'<'}h1{'>'}Hello AgentX!{'<'}/h1{'>'}</div>
-                      <div className="ml-8">{'<'}/div{'>'}</div>
-                      <div className="ml-4">)</div>
-                      <div>{'}'}</div>
-                      <div className="mt-4"><span className="text-purple-400">export default</span> App</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CodeBasePreview sandboxId={sandbox_url} />
             )}
           </div>
         )}

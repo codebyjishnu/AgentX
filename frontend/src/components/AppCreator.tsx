@@ -33,7 +33,6 @@ export default function AppCreator() {
   }
 
   const handleSandboxReady = (sandboxId: string) => {
-    console.log("Sandbox ready:", sandboxId)
     setSandboxUrl(sandboxId)
   }
 
