@@ -92,7 +92,6 @@ export default function ChatInterface({ onSendMessage,projectDetails}:    ChatIn
         )
       },
       onComplete: (data) => {
-        console.log("onComplete received:", data)
         const messageId = streamingMessageIdRef.current
         // Show final message with summary when action is complete
         if (messageId) {
