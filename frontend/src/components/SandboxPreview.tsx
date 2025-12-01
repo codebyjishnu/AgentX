@@ -5,10 +5,19 @@ import { useState } from "react"
 
 interface SandboxPreviewProps {
   isLoading?: boolean
+  sandbox_url?: string // This is actually the sandbox ID in format like "itjfqwrv49hl8jldtv2y2"
 }
 
-export default function SandboxPreview({ isLoading = false }: SandboxPreviewProps) {
+export default function SandboxPreview({ isLoading = false, sandbox_url }: SandboxPreviewProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview')
+  const [iframeKey, setIframeKey] = useState(0)
+
+  // Generate the E2B preview URL from sandbox ID
+  const previewUrl = sandbox_url ? `https://3000-${sandbox_url}.e2b.app` : null
+
+  const handleRefresh = () => {
+    setIframeKey(prev => prev + 1)
+  }
   
   return (
     <Card className="h-full bg-card/50 border-border/50 flex flex-col">
@@ -39,7 +48,7 @@ export default function SandboxPreview({ isLoading = false }: SandboxPreviewProp
                 Code
               </Button>
             </div>
-            <Button size="sm" variant="outline" className="h-8">
+            <Button size="sm" variant="outline" className="h-8" onClick={handleRefresh} disabled={!previewUrl}>
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
@@ -53,6 +62,14 @@ export default function SandboxPreview({ isLoading = false }: SandboxPreviewProp
               <p className="text-sm text-muted-foreground">Initializing sandbox...</p>
             </div>
           </div>
+        ) : previewUrl && viewMode === 'preview' ? (
+          <iframe
+            key={iframeKey}
+            src={previewUrl}
+            className="w-full h-full border-0"
+            title="Sandbox Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          />
         ) : (
           <div className="h-full w-full bg-secondary/20">
             {viewMode === 'preview' ? (

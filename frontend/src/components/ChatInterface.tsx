@@ -17,10 +17,11 @@ interface Message {
 
 interface ChatInterfaceProps {
   onSendMessage?: (message: string) => void,
-  projectDetails?:Project
+  onSandboxReady?: (sandboxId: string) => void,
+  projectDetails?: Project
 }
 
-export default function ChatInterface({ onSendMessage,projectDetails}:    ChatInterfaceProps) {
+export default function ChatInterface({ onSendMessage, onSandboxReady, projectDetails }: ChatInterfaceProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const initialMessageProcessed = useRef(false)
@@ -103,6 +104,12 @@ export default function ChatInterface({ onSendMessage,projectDetails}:    ChatIn
             )
           )
         }
+
+        // Notify parent about sandbox ID if available
+        if (data.sandbox_id) {
+          onSandboxReady?.(data.sandbox_id)
+        }
+
         streamingMessageIdRef.current = null
       },
       onError: (error) => {
