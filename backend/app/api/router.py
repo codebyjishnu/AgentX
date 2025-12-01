@@ -6,6 +6,7 @@ from app.schemas.project import ChatRequest, ProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.services.agent_service import AgentService
+from app.services.sandbox_service import SandboxService
 
 router = APIRouter()
 
@@ -42,3 +43,29 @@ async def create_project_messages(
     """
     service = AgentService(db)
     return await service.execute_chat(project_id, message)
+
+
+@router.get("/sandbox/{sandbox_id}/list_files", response_model_exclude_none=True, response_model_exclude_unset=True)
+async def list_files(
+    sandbox_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all files in the sandbox.
+    """
+    service = SandboxService()
+    await service.connect(sandbox_id)
+    return await service.list_files()
+
+@router.get("/sandbox/{sandbox_id}/{path:path}", response_model_exclude_none=True, response_model_exclude_unset=True)
+async def read_file(
+    sandbox_id: str,
+    path: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Read a file from the sandbox.
+    """
+    service = SandboxService()
+    await service.connect(sandbox_id)
+    return await service.read_file(path)
