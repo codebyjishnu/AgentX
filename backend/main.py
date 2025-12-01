@@ -13,16 +13,4 @@ async def root():
     return {"message": "Success"}
 
 app.include_router(router)
-
-
-async def main():
-    from dotenv import load_dotenv
-    load_dotenv()
-    obj = WorkflowService(db=None)
-    user_input = "Create a simple nextjs landing page"
-    await obj.execute_workflow(uuid.uuid4(), user_input)
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
     

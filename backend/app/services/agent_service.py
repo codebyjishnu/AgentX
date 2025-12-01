@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import MessageType, Project, Message, MessageRole
+from app.schemas.project import ChatRequest
 
 class AgentService():
 
@@ -56,7 +57,7 @@ class AgentService():
         await self.db.commit()
         return db_obj
 
-    async def execute_chat(self, project_id: uuid.UUID, message: str):
+    async def execute_chat(self, project_id: uuid.UUID, chat_request: ChatRequest):
         """Create a new message for a project."""
         # First check if project exists
         stmt = select(Project).where(Project.id == project_id)
@@ -67,7 +68,7 @@ class AgentService():
             raise HTTPException(status_code=404, detail="Project not found")
         
         # Add user message
-        user_message = await self._add_message(project_id, message, MessageRole.USER, MessageType.RESULT)
+        user_message = await self._add_message(project_id, chat_request.message, MessageRole.USER, MessageType.RESULT)
         # Create new message
      
         result = None

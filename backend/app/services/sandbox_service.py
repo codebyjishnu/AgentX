@@ -1,6 +1,8 @@
 from typing import Any, Optional, Union
 from e2b import AsyncSandbox
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+load_dotenv()
 class SandboxFile(BaseModel):
     path: str = Field(..., description="The file path in the sandbox.")
     content: str = Field(..., description="The content of the file.")
@@ -71,4 +73,17 @@ class SandboxService:
             return contents
         except Exception as e:
             return "File read failed: " + str(e)
-
+        
+    async def list_files(self, path: str = "/home/user/src/"):
+        try:
+            files = await self._get_sandbox().files.list(path, depth=3)
+            return files
+        except Exception as e:
+            return "File list failed: " + str(e)
+    
+    async def read_file(self, path: str):
+        try:
+            content = await self._get_sandbox().files.read(path)
+            return content
+        except Exception as e:
+            return "File read failed: " + str(e)
