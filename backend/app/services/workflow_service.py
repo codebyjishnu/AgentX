@@ -15,6 +15,7 @@ from google.adk.sessions import Session
 from app.agent.code_agent import CodeAgent
 from app.services.sandbox_service import SandboxService
 from app.core.config import settings
+from app.agent.title_generator import TitleGenerator
 
 class WorkflowService():
 
@@ -26,8 +27,8 @@ class WorkflowService():
         )
         self.artifact_service = InMemoryArtifactService()
 
-    async def _init_sandbox(self) -> None:
-        await self.sandbox.connect()
+    async def _init_sandbox(self, session_id: Optional[str]):
+        return await self.sandbox.connect(session_id)
 
     async def _init_config(self, project_id: uuid.UUID):
         session = await self._get_session(project_id)
@@ -41,6 +42,7 @@ class WorkflowService():
                 state={
                     "summary": "",
                     "files": {},
+                    "session_id": None,
                 },
             )
 
@@ -59,6 +61,7 @@ class WorkflowService():
                 description="A sequential agent to handle coding workflows.",
                 sub_agents=[
                     CodeAgent(sandbox=self.sandbox).agent(),
+                    TitleGenerator(sandbox=self.sandbox).agent(),
                 ]
             ),
             session_service=self.memory_session,
@@ -67,7 +70,8 @@ class WorkflowService():
     
     async def execute_workflow(self, project_id: uuid.UUID, message: str):
         session = await self._init_config(project_id)
-        await self._init_sandbox()
+        sandbox_id = await self._init_sandbox(session.state.get("sandbox_id", None))
+        session.state["sandbox_id"] = sandbox_id
         runner = await self._runner()
         content = types.Content(role='user', parts=[types.Part(text=message)])
 
@@ -95,7 +99,6 @@ class WorkflowService():
                         case _:
                             yield self._create_event(ActionType.MESSAGE, "Processing...")
                 if event.is_final_response():
-                    yield self._create_event(ActionType.COMPLETE, "Task completed.")
                     break
             except Exception as e:
                 yield self._create_event(ActionType.ERROR, "Error: " + str(e))
@@ -105,12 +108,13 @@ class WorkflowService():
         if not session:
             raise Exception("Session not found after workflow execution.")
         
-        yield  {
+        yield self._create_event(ActionType.COMPLETE, "Task completed.", data= {
+            "title": session.state.get("title", ""),
             "summary": session.state.get("summary", ""),
             "files": session.state.get("files", []),
             "sandbox_id": self.sandbox.sandbox.sandbox_id if self.sandbox.sandbox else "",
             "url": url,
-        }
+        })
 
 
     def _create_event(
