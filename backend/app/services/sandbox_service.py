@@ -52,6 +52,28 @@ class SandboxService:
         except Exception as e:
             return f"Command execution failed: {str(e)}\nStdout: {buffer['stdout']}\nStderr: {buffer['stderr']}"
         
+    async def check_for_errors(self) -> Optional[str]:
+        """Check for any errors in the app. Returns error message or None if no errors."""
+        try:
+            sandbox = self._get_sandbox()
+
+            process_check = await sandbox.commands.run("lsof -i :3000 | grep LISTEN")
+            if not process_check.stdout.strip():
+                return "App is not running on port 3000"
+            
+            build_check = await sandbox.commands.run("npm run build --dry-run 2>&1 || true")
+            if "error" in build_check.stdout.lower() or build_check.exit_code != 0:
+                return f"Build errors detected: {build_check.stdout}"
+            
+            ts_check = await sandbox.commands.run("npx tsc --noEmit --skipLibCheck 2>&1 || true")
+            if ts_check.exit_code != 0:
+                return f"TypeScript errors: {ts_check.stdout}"
+            
+            return None
+            
+        except Exception as e:
+            return f"Error check failed: {str(e)}"
+        
     async def create_or_update_files(self, files: list[Any]) -> Union[list[SandboxFile], str]:
         try:
             new_files: list[SandboxFile] = []
@@ -80,7 +102,7 @@ class SandboxService:
         
     async def list_files(self, path: str = "/home/user/src/"):
         try:
-            files = await self._get_sandbox().files.list(path, depth=3)
+            files = await self._get_sandbox().files.list(path, depth=5)
             return files
         except Exception as e:
             return "File list failed: " + str(e)

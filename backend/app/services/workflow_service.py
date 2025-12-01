@@ -5,17 +5,24 @@ from typing import Any, Dict, Optional
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from google.adk.runners import Runner
-from google.adk.agents import LlmAgent
 from google.adk.sessions import DatabaseSessionService
-from google.adk.artifacts import InMemoryArtifactService
 from google.genai import types
 from google.adk.agents import SequentialAgent
 from google.adk.sessions import Session
 
 from app.agent.code_agent import CodeAgent
+from app.models.database import Project
 from app.services.sandbox_service import SandboxService
 from app.core.config import settings
 from app.agent.title_generator import TitleGenerator
+
+class ActionType(str, Enum):
+    MESSAGE = "message"
+    FILE_WRITE = "file_write"
+    FILE_READ= "file_read"
+    TERMINAL = "terminal"
+    COMPLETE = "complete"
+    ERROR = "error"
 
 class WorkflowService():
 
@@ -25,7 +32,6 @@ class WorkflowService():
         self.memory_session = DatabaseSessionService(
             db_url=settings.DATABASE_URL,
         )
-        self.artifact_service = InMemoryArtifactService()
 
     async def _init_sandbox(self, session_id: Optional[str]):
         return await self.sandbox.connect(session_id)
@@ -42,7 +48,6 @@ class WorkflowService():
                 state={
                     "summary": "",
                     "files": {},
-                    "session_id": None,
                 },
             )
 
@@ -68,16 +73,17 @@ class WorkflowService():
             # artifact_service=self.artifact_service,
         )
     
-    async def execute_workflow(self, project_id: uuid.UUID, message: str):
-        session = await self._init_config(project_id)
-        sandbox_id = await self._init_sandbox(session.state.get("sandbox_id", None))
-        session.state["sandbox_id"] = sandbox_id
+    async def execute_workflow(self, project: Project, message: str):
+        session = await self._init_config(project.id)
+        sandbox_id = await self._init_sandbox(project.sandbox_id)
+        if project.sandbox_id != sandbox_id:
+            await self._update_sandbox_id(project, sandbox_id)
         runner = await self._runner()
         content = types.Content(role='user', parts=[types.Part(text=message)])
 
         async for event in runner.run_async(
             user_id="user_123",
-            session_id=str(project_id),
+            session_id=str(project.id),
             new_message=content,
         ):
             try:
@@ -91,20 +97,20 @@ class WorkflowService():
                         case "_create_or_update_files":
                             files = args.get("files", [])
                             file_paths = [file.get("path") for file in files]
-                            yield self._create_event(ActionType.FILE_WRITE, "Processing...", data={"files": file_paths})
+                            yield self._create_event(ActionType.FILE_WRITE, "Updating files...", data={"files": file_paths})
                         case "_read_files":
-                            yield self._create_event(ActionType.FILE_READ, "Processing...", data={"files": args.get("paths", [])})
+                            yield self._create_event(ActionType.FILE_READ, "Reading files...", data={"files": args.get("paths", [])})
                         case "_run_terminal":
-                            yield self._create_event(ActionType.TERMINAL, "Processing...", data={"command": args.get("command", "")})
+                            yield self._create_event(ActionType.TERMINAL, "Executing terminal command...", data={"command": args.get("command", "")})
                         case _:
-                            yield self._create_event(ActionType.MESSAGE, "Processing...")
+                            yield self._create_event(ActionType.MESSAGE, "Thinking...")
                 if event.is_final_response():
                     break
             except Exception as e:
                 yield self._create_event(ActionType.ERROR, "Error: " + str(e))
 
         url = await self.sandbox.get_sandbox_url()
-        session = await self._get_session(project_id)
+        session = await self._get_session(project.id)
         if not session:
             raise Exception("Session not found after workflow execution.")
         
@@ -133,10 +139,10 @@ class WorkflowService():
             event_data["data"] = data
         return f"data: {json.dumps(event_data)}\n\n"
     
-class ActionType(str, Enum):
-    MESSAGE = "message"
-    FILE_WRITE = "file_write"
-    FILE_READ= "file_read"
-    TERMINAL = "terminal"
-    COMPLETE = "complete"
-    ERROR = "error"
+    async def _update_sandbox_id(self, project: Project, sandbox_id: str) -> None:
+        """Update the project's sandbox_id in the database."""
+        if self.db is None:
+            raise Exception("Database session is not available.")
+        project.sandbox_id = sandbox_id
+        self.db.add(project)
+        await self.db.commit()

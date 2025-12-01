@@ -70,7 +70,7 @@ class AgentService():
             raise HTTPException(status_code=404, detail="Project not found")
         
         return StreamingResponse(
-            WorkflowService(self.db).execute_workflow(project_id, chat_request.message),
+            WorkflowService(self.db).execute_workflow(project, chat_request.message),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
