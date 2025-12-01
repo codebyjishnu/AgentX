@@ -16,6 +16,7 @@ export default function AppCreator() {
   const { id } = useParams()
   const { data: projectDetails, isLoading, isError } = useProjectDetails(id)
   const [isCreating, setIsCreating] = useState(false)
+  const [sandboxUrl, setSandboxUrl] = useState<string | undefined>(undefined)
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -29,6 +30,11 @@ export default function AppCreator() {
   const handleSendMessage = (message: string) => {
     console.log("Message sent:", message)
     // This will be connected to the backend API later
+  }
+
+  const handleSandboxReady = (sandboxId: string) => {
+    console.log("Sandbox ready:", sandboxId)
+    setSandboxUrl(sandboxId)
   }
 
   return (
@@ -80,7 +86,11 @@ export default function AppCreator() {
             {/* Left Panel - Chat Interface */}
             <ResizablePanel defaultSize={50} minSize={20}>
               <div className="h-full bg-background">
-                <ChatInterface onSendMessage={handleSendMessage} projectDetails={projectDetails}/>
+                <ChatInterface
+                  onSendMessage={handleSendMessage}
+                  onSandboxReady={handleSandboxReady}
+                  projectDetails={projectDetails}
+                />
               </div>
             </ResizablePanel>
 
@@ -89,7 +99,7 @@ export default function AppCreator() {
             {/* Right Panel - Sandbox Preview */}
             <ResizablePanel defaultSize={50} minSize={40}>
               <div className="h-full bg-background p-4">
-                <SandboxPreview isLoading={isCreating} />
+                <SandboxPreview isLoading={isCreating} sandbox_url={sandboxUrl} />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
