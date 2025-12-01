@@ -40,6 +40,8 @@ export interface SSEEvent {
     path?: string;
     language?: string;
     changes?: number;
+    sandbox_id?:string,
+    summary?:string
   };
 }
 
@@ -130,6 +132,9 @@ export async function sendMessageSSE(
               case "complete":
                 if (typeof parsed.message === "object") {
                   callbacks.onComplete?.(parsed.message);
+                } else {
+                  // Handle case where message might be a string summary
+                  callbacks.onComplete?.({ sandbox_id: parsed.data?.sandbox_id || "", summary: String(parsed.message) });
                 }
                 return;
             }

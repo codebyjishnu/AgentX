@@ -24,9 +24,10 @@ export default function ChatInterface({ onSendMessage,projectDetails}:    ChatIn
   const navigate = useNavigate()
   const location = useLocation()
   const initialMessageProcessed = useRef(false)
+  const streamingMessageIdRef = useRef<string | null>(null)
 
-  // Hook to send message via API
-  const { mutate: sendMessageMutation, isPending: isSending } = useSendMessage(projectDetails?.id)
+  // Hook to send message via SSE
+  const { sendMessage: sendMessageSSE, isPending: isSending } = useSendMessage(projectDetails?.id)
 
   // Get initial message from navigation state
   const getInitialMessages = (): Message[] => {
@@ -44,7 +45,81 @@ export default function ChatInterface({ onSendMessage,projectDetails}:    ChatIn
 
   const [messages, setMessages] = useState<Message[]>(getInitialMessages)
   const [input, setInput] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
+
+  // Helper to send message and handle streaming response
+  const handleSendMessage = (content: string) => {
+    // Create AI message placeholder for streaming
+    const aiMessageId = Date.now().toString()
+    streamingMessageIdRef.current = aiMessageId
+
+    const aiMessage: Message = {
+      id: aiMessageId,
+      role: "assistant",
+      content: "Processing...",
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    }
+    setMessages(prev => [...prev, aiMessage])
+
+    sendMessageSSE(content, {
+      onMessage: (message) => {
+        // Update single message with current status while streaming
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: message }
+              : msg
+          )
+        )
+      },
+      onFileCreation: (data) => {
+        // Update single message with file creation status
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message }
+              : msg
+          )
+        )
+      },
+      onFileUpdate: (data) => {
+        // Update single message with file update status
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: data.message }
+              : msg
+          )
+        )
+      },
+      onComplete: (data) => {
+        console.log("onComplete received:", data)
+        const messageId = streamingMessageIdRef.current
+        // Show final message with summary when action is complete
+        if (messageId) {
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === messageId
+                ? { ...msg, content: data.summary || "Task completed successfully." }
+                : msg
+            )
+          )
+        }
+        streamingMessageIdRef.current = null
+      },
+      onError: (error) => {
+        console.error("Failed to send message:", error)
+        // Update message to show error
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === streamingMessageIdRef.current
+              ? { ...msg, content: "Sorry, an error occurred. Please try again." }
+              : msg
+          )
+        )
+        streamingMessageIdRef.current = null
+      }
+    })
+  }
 
   // Handle initial message - send to API
   useEffect(() => {
@@ -52,32 +127,15 @@ export default function ChatInterface({ onSendMessage,projectDetails}:    ChatIn
     if (state?.initialMessage && !initialMessageProcessed.current) {
       initialMessageProcessed.current = true
 
-      // Send initial message via API
-      sendMessageMutation(state.initialMessage, {
-        onSuccess: (response) => {
-          // Add AI response to messages if available
-          if (response?.message) {
-            const aiMessage: Message = {
-              id: Date.now().toString(),
-              role: "assistant",
-              content: response.message,
-              timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-            }
-            setMessages(prev => [...prev, aiMessage])
-          }
-          setIsTyping(false)
-        },
-        onError: (error) => {
-          console.error("Failed to send initial message:", error)
-          setIsTyping(false)
-        }
-      })
+       
+      handleSendMessage(state.initialMessage)
       onSendMessage?.(state.initialMessage)
 
       // Clear the state to prevent re-triggering on navigation
       window.history.replaceState({}, document.title)
     }
-  }, [location.state, onSendMessage, sendMessageMutation])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, onSendMessage])
 
   const handleProjectChange = (projectId: string) => {
     navigate(`/project/${projectId}`)
@@ -99,32 +157,11 @@ const mockProjects: Project[] = [
       timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
 
-    setMessages([...messages, newMessage])
+    setMessages(prev => [...prev, newMessage])
     const messageContent = input
     setInput("")
 
-    // Send message via API
-    setIsTyping(true)
-    sendMessageMutation(messageContent, {
-      onSuccess: (response) => {
-        // Add AI response to messages if available
-        if (response?.message) {
-          const aiMessage: Message = {
-            id: Date.now().toString(),
-            role: "assistant",
-            content: response.message,
-            timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-          }
-          setMessages(prev => [...prev, aiMessage])
-        }
-        setIsTyping(false)
-      },
-      onError: (error) => {
-        console.error("Failed to send message:", error)
-        setIsTyping(false)
-      }
-    })
-
+    handleSendMessage(messageContent)
     onSendMessage?.(messageContent)
   }
 
@@ -207,20 +244,7 @@ const mockProjects: Project[] = [
               )}
             </div>
           ))}
-          {isTyping && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                <Bot className="w-5 h-5 text-primary" />
-              </div>
-              <div className="bg-secondary rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       </ScrollArea>
 
