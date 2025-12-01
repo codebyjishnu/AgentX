@@ -41,8 +41,9 @@ export const useProjectDetails = (projectId: string | undefined) => {
 
 export interface SendMessageCallbacks {
   onMessage?: (message: string) => void;
-  onFileCreation?: (data: { filename: string; path: string; language: string; message: string }) => void;
-  onFileUpdate?: (data: { filename: string; path: string; changes: number; message: string }) => void;
+  onFileWrite?: (data: { files: string[]; message: string }) => void;
+  onFileRead?: (data: { files: string[]; message: string }) => void;
+  onTerminal?: (data: { command?: string; output?: string; message: string }) => void;
   onComplete?: (data: { sandbox_id: string; summary: string }) => void;
   onError?: (error: Error) => void;
 }
@@ -70,11 +71,14 @@ export const useSendMessage = (projectId: string | undefined) => {
         onMessage: (msg) => {
           callbacks?.onMessage?.(msg);
         },
-        onFileCreation: (data) => {
-          callbacks?.onFileCreation?.(data);
+        onFileWrite: (data) => {
+          callbacks?.onFileWrite?.(data);
         },
-        onFileUpdate: (data) => {
-          callbacks?.onFileUpdate?.(data);
+        onFileRead: (data) => {
+          callbacks?.onFileRead?.(data);
+        },
+        onTerminal: (data) => {
+          callbacks?.onTerminal?.(data);
         },
         onComplete: (data) => {
           setIsPending(false);
