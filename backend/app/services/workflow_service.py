@@ -27,7 +27,7 @@ class WorkflowService():
         self.artifact_service = InMemoryArtifactService()
 
     async def _init_sandbox(self) -> None:
-        await self.sandbox.connect("iv7r68592f6zvuqjrik5b")
+        await self.sandbox.connect()
 
     async def _init_config(self, project_id: uuid.UUID):
         session = await self._get_session(project_id)

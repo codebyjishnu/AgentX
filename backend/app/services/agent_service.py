@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import MessageType, Project, Message, MessageRole
 from app.schemas.project import ChatRequest
+from app.services.workflow_service import WorkflowService
 
 class AgentService():
 
@@ -67,10 +68,4 @@ class AgentService():
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         
-        # Add user message
-        user_message = await self._add_message(project_id, chat_request.message, MessageRole.USER, MessageType.RESULT)
-        # Create new message
-     
-        result = None
-        # TODO: start workflow excution and update message with result
-        return result
+        return WorkflowService(self.db).execute_workflow(project_id, chat_request.message)
