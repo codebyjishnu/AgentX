@@ -115,10 +115,6 @@ export default function AppCreator() {
               All systems operational
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <span>Powered by E2B Sandbox</span>
-            <span>v1.0.0</span>
-          </div>
         </div>
       </footer>
     </div>
